@@ -9,8 +9,8 @@ const getAllActiveExams = async (req, res) => {
         id,
         name,
         exam_date,
-        target_class_levels,
-        prep_class_levels,
+        target_class_level,
+        preparation_class_level,
         description,
         is_active
       FROM exams 
@@ -49,8 +49,8 @@ const getExamById = async (req, res) => {
         id,
         name,
         exam_date,
-        target_class_levels,
-        prep_class_levels,
+        target_class_level,
+        preparation_class_level,
         description,
         is_active,
         created_at
@@ -96,12 +96,11 @@ const getExamClasses = async (req, res) => {
       SELECT 
         id,
         name,
-        min_class_level,
-        max_class_level,
+        level,
         is_active
       FROM classes 
       WHERE exam_id = $1 AND is_active = true
-      ORDER BY min_class_level ASC
+      ORDER BY level ASC
     `, [id]);
 
     res.status(200).json(successResponse(result.rows, 'Sınava ait sınıflar getirildi'));

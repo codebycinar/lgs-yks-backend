@@ -8,15 +8,14 @@ const getAllClasses = async (req, res) => {
       SELECT 
         c.id, 
         c.name, 
-        c.min_class_level,
-        c.max_class_level,
+        c.level,
         c.is_active,
         e.name as exam_name,
         e.exam_date
       FROM classes c
       LEFT JOIN exams e ON c.exam_id = e.id
       WHERE c.is_active = true
-      ORDER BY c.min_class_level ASC
+      ORDER BY c.level ASC
     `);
 
     res.status(200).json(successResponse(result.rows, 'Sınıflar başarıyla getirildi'));
@@ -36,8 +35,7 @@ const getClassById = async (req, res) => {
       SELECT 
         c.id, 
         c.name, 
-        c.min_class_level,
-        c.max_class_level,
+        c.level,
         c.is_active,
         e.id as exam_id,
         e.name as exam_name,

@@ -47,7 +47,7 @@ const getDashboardStats = async (req, res) => {
     const usersResult = await query('SELECT COUNT(*) as total FROM users');
     
     // Toplam soru sayısı
-    const questionsResult = await query('SELECT COUNT(*) as total FROM question_contents');
+    const questionsResult = await query('SELECT COUNT(*) as total FROM questions');
     
     // Toplam konu sayısı
     const topicsResult = await query('SELECT COUNT(*) as total FROM topics WHERE is_active = true');
@@ -55,13 +55,13 @@ const getDashboardStats = async (req, res) => {
     // Aktif haftalık programlar
     const programsResult = await query(`
       SELECT COUNT(*) as total 
-      FROM weekly_programs 
-      WHERE start_date <= CURRENT_DATE AND end_date >= CURRENT_DATE
+      FROM programs 
+      WHERE is_active = true
     `);
 
     // Son kayıt olan kullanıcılar
     const recentUsersResult = await query(`
-      SELECT id, name, surname, phone_number, created_at
+      SELECT id, first_name, last_name, phone, created_at
       FROM users 
       ORDER BY created_at DESC 
       LIMIT 5
@@ -72,10 +72,10 @@ const getDashboardStats = async (req, res) => {
       SELECT 
         s.name as subject_name,
         COUNT(t.id) as topic_count,
-        COUNT(qc.id) as question_count
+        COUNT(q.id) as question_count
       FROM subjects s
       LEFT JOIN topics t ON s.id = t.subject_id AND t.is_active = true
-      LEFT JOIN question_contents qc ON t.id = qc.topic_id
+      LEFT JOIN questions q ON t.id = q.topic_id
       WHERE s.is_active = true
       GROUP BY s.id, s.name, s.order_index
       ORDER BY s.order_index
@@ -111,7 +111,7 @@ const getAllUsers = async (req, res) => {
     let searchParams = [];
 
     if (search) {
-      whereClause = `WHERE (u.name ILIKE $3 OR u.surname ILIKE $3 OR u.phone_number ILIKE $3)`;
+      whereClause = `WHERE (u.first_name ILIKE $3 OR u.last_name ILIKE $3 OR u.phone ILIKE $3)`;
       params.push(`%${search}%`);
       searchParams = [`%${search}%`];
     }
@@ -119,16 +119,16 @@ const getAllUsers = async (req, res) => {
     const result = await query(`
       SELECT 
         u.id,
-        u.phone_number,
-        u.name,
-        u.surname,
+        u.phone,
+        u.first_name,
+        u.last_name,
         u.gender,
         u.created_at,
         c.name as class_name,
         e.name as exam_name
       FROM users u
       LEFT JOIN classes c ON u.class_id = c.id
-      LEFT JOIN exams e ON u.current_exam_id = e.id
+      LEFT JOIN exams e ON c.exam_id = e.id
       ${whereClause}
       ORDER BY u.created_at DESC
       LIMIT $1 OFFSET $2
