@@ -17,9 +17,13 @@ router.get('/users', adminController.getAllUsers);
 router.get('/users/:id', adminController.getUserById);
 
 // İçerik yönetimi
+router.get('/exams', adminController.getAllExams);
 router.post('/exams', adminController.createExam);
+router.get('/classes', adminController.getAllClasses);
 router.post('/classes', adminController.createClass);
+router.get('/subjects', adminController.getAllSubjects);
 router.post('/subjects', adminController.createSubject);
+router.get('/topics', adminController.getAllTopics);
 router.post('/topics', adminController.createTopic);
 
 // Soru yönetimi - Admin paneli için

@@ -29,7 +29,10 @@ const query = async (text, params) => {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text, duration, rows: res.rowCount });
+    // Sadece yavaş query'leri log'la (500ms üzeri)
+    if (duration > 500) {
+      console.log('Slow query detected', { text, duration, rows: res.rowCount });
+    }
     return res;
   } catch (error) {
     console.error('Query error:', error);

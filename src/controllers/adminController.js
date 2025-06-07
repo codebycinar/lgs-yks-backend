@@ -224,10 +224,10 @@ const createExam = async (req, res) => {
     }
 
     const result = await query(`
-      INSERT INTO exams (name, exam_date, target_class_levels, prep_class_levels, description)
+      INSERT INTO exams (name, exam_date, target_class_level, preparation_class_level, description)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, examDate, targetClassLevels, prepClassLevels, description]);
+    `, [name, examDate, targetClassLevels[0], prepClassLevels[0], description]);
 
     res.status(201).json(successResponse(result.rows[0], 'Sınav başarıyla oluşturuldu'));
 
@@ -240,17 +240,17 @@ const createExam = async (req, res) => {
 // Sınıf oluşturma
 const createClass = async (req, res) => {
   try {
-    const { name, minClassLevel, maxClassLevel, examId } = req.body;
+    const { name, minClassLevel, examId } = req.body;
 
-    if (!name || !minClassLevel || !maxClassLevel) {
+    if (!name || !minClassLevel) {
       return res.status(400).json(errorResponse('Gerekli alanlar eksik', 400));
     }
 
     const result = await query(`
-      INSERT INTO classes (name, min_class_level, max_class_level, exam_id)
-      VALUES ($1, $2, $3, $4)
+      INSERT INTO classes (name, level, exam_id)
+      VALUES ($1, $2, $3)
       RETURNING *
-    `, [name, minClassLevel, maxClassLevel, examId]);
+    `, [name, minClassLevel, examId]);
 
     res.status(201).json(successResponse(result.rows[0], 'Sınıf başarıyla oluşturuldu'));
 
@@ -368,12 +368,113 @@ const getAllQuestions = async (req, res) => {
   }
 };
 
+// İçerik listeleme metodları
+const getAllExams = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        id,
+        name,
+        exam_date,
+        target_class_level,
+        preparation_class_level,
+        description,
+        is_active,
+        created_at
+      FROM exams 
+      ORDER BY created_at DESC
+    `);
+
+    res.status(200).json(successResponse(result.rows, 'Sınavlar getirildi'));
+  } catch (error) {
+    console.error('Sınavları getirme hatası:', error);
+    res.status(500).json(errorResponse('Sınavlar getirilemedi'));
+  }
+};
+
+const getAllClasses = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        c.id, 
+        c.name, 
+        c.level,
+        c.is_active,
+        c.created_at,
+        e.name as exam_name,
+        e.exam_date
+      FROM classes c
+      LEFT JOIN exams e ON c.exam_id = e.id
+      ORDER BY c.created_at DESC
+    `);
+
+    res.status(200).json(successResponse(result.rows, 'Sınıflar getirildi'));
+  } catch (error) {
+    console.error('Sınıfları getirme hatası:', error);
+    res.status(500).json(errorResponse('Sınıflar getirilemedi'));
+  }
+};
+
+const getAllSubjects = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        id,
+        name,
+        order_index,
+        is_active,
+        created_at
+      FROM subjects 
+      ORDER BY order_index ASC, created_at DESC
+    `);
+
+    res.status(200).json(successResponse(result.rows, 'Dersler getirildi'));
+  } catch (error) {
+    console.error('Dersleri getirme hatası:', error);
+    res.status(500).json(errorResponse('Dersler getirilemedi'));
+  }
+};
+
+const getAllTopics = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        t.id,
+        t.name,
+        t.subject_id,
+        t.class_id,
+        t.parent_id,
+        t.order_index,
+        t.is_active,
+        t.created_at,
+        s.name as subject_name,
+        c.name as class_name,
+        c.level as class_level,
+        pt.name as parent_name
+      FROM topics t
+      INNER JOIN subjects s ON t.subject_id = s.id
+      INNER JOIN classes c ON t.class_id = c.id
+      LEFT JOIN topics pt ON t.parent_id = pt.id
+      ORDER BY s.order_index, c.level, t.order_index
+    `);
+
+    res.status(200).json(successResponse(result.rows, 'Konular getirildi'));
+  } catch (error) {
+    console.error('Konuları getirme hatası:', error);
+    res.status(500).json(errorResponse('Konular getirilemedi'));
+  }
+};
+
 module.exports = {
   login,
   getDashboardStats,
   getAllUsers,
   getUserById,
   getAllQuestions,
+  getAllExams,
+  getAllClasses,
+  getAllSubjects,
+  getAllTopics,
   createExam,
   createClass,
   createSubject,
