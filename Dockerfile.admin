@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Admin panel package files'ları kopyala
+COPY lgs-yks-admin/package*.json ./
+RUN npm install && npm cache clean --force
+
+# Admin panel source'unu kopyala
+COPY lgs-yks-admin/ .
+
+EXPOSE 3001
+
+CMD ["npm", "start"]

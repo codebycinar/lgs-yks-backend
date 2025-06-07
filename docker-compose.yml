@@ -51,6 +51,28 @@ services:
     restart: unless-stopped
     command: npm start
 
+  # Admin Panel React servisi
+  admin:
+    build:
+      context: ../
+      dockerfile: lgs-yks-backend/Dockerfile.admin
+    container_name: lgs_admin
+    environment:
+      - REACT_APP_API_URL=http://localhost:3000/api
+      - PORT=3001
+    ports:
+      - "3001:3001"
+    volumes:
+      - ../lgs-yks-admin:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - lgs_network
+    restart: unless-stopped
+    stdin_open: true
+    tty: true
+
   # Redis cache servisi (ileride session ve cache için)
   redis:
     image: redis:7-alpine
