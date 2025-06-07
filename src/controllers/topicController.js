@@ -1,6 +1,32 @@
 const { query } = require('../config/database');
 const { successResponse, errorResponse } = require('../utils/helpers');
 
+// Tüm konuları getir (admin paneli için)
+const getAllTopics = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT 
+        t.id,
+        t.name,
+        t.order_index,
+        t.parent_id,
+        s.name as subject_name,
+        c.name as class_name,
+        c.level as class_level
+      FROM topics t
+      INNER JOIN subjects s ON t.subject_id = s.id
+      INNER JOIN classes c ON t.class_id = c.id
+      WHERE t.is_active = true
+      ORDER BY s.order_index, c.level, t.order_index
+    `);
+
+    res.status(200).json(successResponse(result.rows, 'Tüm konular getirildi'));
+  } catch (error) {
+    console.error('Konuları getirme hatası:', error);
+    res.status(500).json(errorResponse('Konular getirilemedi'));
+  }
+};
+
 const getTopicById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -48,4 +74,4 @@ const getSubtopics = async (req, res) => {
   }
 };
 
-module.exports = { getTopicById, getSubtopics };
+module.exports = { getAllTopics, getTopicById, getSubtopics };

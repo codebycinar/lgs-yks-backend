@@ -22,7 +22,8 @@ router.post('/classes', adminController.createClass);
 router.post('/subjects', adminController.createSubject);
 router.post('/topics', adminController.createTopic);
 
-// Soru yönetimi
+// Soru yönetimi - Admin paneli için
+router.get('/questions', adminController.getAllQuestions);
 router.post('/questions', adminController.createQuestion);
 router.put('/questions/:id', adminController.updateQuestion);
 router.delete('/questions/:id', adminController.deleteQuestion);

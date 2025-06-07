@@ -176,7 +176,7 @@ const getUserById = async (req, res) => {
         e.exam_date
       FROM users u
       LEFT JOIN classes c ON u.class_id = c.id
-      LEFT JOIN exams e ON u.current_exam_id = e.id
+      LEFT JOIN exams e ON c.exam_id = e.id
       WHERE u.id = $1
     `, [id]);
 
@@ -306,11 +306,74 @@ const createTopic = async (req, res) => {
   }
 };
 
+// Soru listesi getirme (admin paneli için)
+const getAllQuestions = async (req, res) => {
+  try {
+    const { page = 1, limit = 10, topic_id } = req.query;
+    const { offset, limit: parsedLimit } = calculatePagination(page, limit);
+
+    let whereClause = '';
+    let params = [parsedLimit, offset];
+
+    if (topic_id) {
+      whereClause = 'WHERE q.topic_id = $3';
+      params.push(topic_id);
+    }
+
+    const result = await query(`
+      SELECT 
+        q.id,
+        q.question_text,
+        q.question_image,
+        q.difficulty_level,
+        q.is_active,
+        q.created_at,
+        t.name as topic_name,
+        s.name as subject_name,
+        c.name as class_name
+      FROM questions q
+      INNER JOIN topics t ON q.topic_id = t.id
+      INNER JOIN subjects s ON t.subject_id = s.id
+      INNER JOIN classes c ON t.class_id = c.id
+      ${whereClause}
+      ORDER BY q.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, params);
+
+    // Toplam soru sayısı
+    const countParams = topic_id ? [topic_id] : [];
+    const countResult = await query(`
+      SELECT COUNT(*) as total 
+      FROM questions q
+      ${topic_id ? 'WHERE q.topic_id = $1' : ''}
+    `, countParams);
+
+    const total = parseInt(countResult.rows[0].total);
+    const totalPages = Math.ceil(total / parsedLimit);
+
+    res.status(200).json(successResponse({
+      questions: result.rows,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages,
+        totalItems: total,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    }, 'Sorular başarıyla getirildi'));
+
+  } catch (error) {
+    console.error('Soruları getirme hatası:', error);
+    res.status(500).json(errorResponse('Sorular getirilemedi'));
+  }
+};
+
 module.exports = {
   login,
   getDashboardStats,
   getAllUsers,
   getUserById,
+  getAllQuestions,
   createExam,
   createClass,
   createSubject,
