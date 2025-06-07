@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # PostgreSQL veritabanı servisi
+  postgres:
+    image: postgres:15-alpine
+    container_name: lgs_postgres
+    environment:
+      POSTGRES_DB: lgs_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db:/docker-entrypoint-initdb.d
+    networks:
+      - lgs_network
+    restart: unless-stopped
+
+  # Backend Node.js servisi
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lgs_backend
+    environment:
+      - NODE_ENV=development
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=lgs_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - JWT_SECRET=development_secret_key_change_in_production
+      - PORT=3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      - postgres
+    networks:
+      - lgs_network
+    restart: unless-stopped
+    command: npm start
+
+  # Redis cache servisi (ileride session ve cache için)
+  redis:
+    image: redis:7-alpine
+    container_name: lgs_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lgs_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  lgs_network:
+    driver: bridge
