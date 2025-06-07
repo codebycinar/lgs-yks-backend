@@ -13,8 +13,8 @@ CREATE TABLE exams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
     exam_date DATE NOT NULL,
-    target_class_levels INTEGER[] NOT NULL,
-    prep_class_levels INTEGER[] NOT NULL,
+    target_class_level INTEGER NOT NULL,
+    preparation_class_level INTEGER NOT NULL,
     is_active BOOLEAN DEFAULT true,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -25,8 +25,7 @@ CREATE TABLE exams (
 CREATE TABLE classes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) NOT NULL,
-    min_class_level INTEGER NOT NULL,
-    max_class_level INTEGER NOT NULL,
+    level INTEGER NOT NULL,
     exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -59,11 +58,10 @@ CREATE TABLE topics (
 -- Users table
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    phone_number VARCHAR(15) UNIQUE NOT NULL,
-    name VARCHAR(50) NOT NULL,
-    surname VARCHAR(50) NOT NULL,
+    phone VARCHAR(15) UNIQUE NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
     class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
-    current_exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
     gender gender_enum NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -124,7 +122,27 @@ CREATE TABLE program_tasks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Question Content table
+-- Questions table
+CREATE TABLE questions (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
+    difficulty_level VARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (difficulty_level IN ('easy', 'medium', 'hard')),
+    question_text TEXT,
+    question_image_url TEXT,
+    question_pdf_url TEXT,
+    solution_text TEXT,
+    solution_image_url TEXT,
+    solution_pdf_url TEXT,
+    correct_answers JSONB NOT NULL DEFAULT '[]',
+    explanation TEXT,
+    keywords JSONB DEFAULT '[]',
+    estimated_time INTEGER,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Question Content table (legacy for file-only questions)
 CREATE TABLE question_contents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
@@ -138,7 +156,7 @@ CREATE TABLE question_contents (
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_users_phone_number ON users(phone_number);
+CREATE INDEX idx_users_phone ON users(phone);
 CREATE INDEX idx_users_class_id ON users(class_id);
 CREATE INDEX idx_topics_subject_id ON topics(subject_id);
 CREATE INDEX idx_topics_class_id ON topics(class_id);
@@ -148,6 +166,8 @@ CREATE INDEX idx_user_topic_progress_topic_id ON user_topic_progress(topic_id);
 CREATE INDEX idx_goals_user_id ON goals(user_id);
 CREATE INDEX idx_weekly_programs_user_id ON weekly_programs(user_id);
 CREATE INDEX idx_program_tasks_weekly_program_id ON program_tasks(weekly_program_id);
+CREATE INDEX idx_questions_topic_id ON questions(topic_id);
+CREATE INDEX idx_questions_difficulty_level ON questions(difficulty_level);
 CREATE INDEX idx_question_contents_topic_id ON question_contents(topic_id);
 CREATE INDEX idx_sms_verifications_phone_number ON sms_verifications(phone_number);
 CREATE INDEX idx_sms_verifications_expires_at ON sms_verifications(expires_at);
@@ -170,5 +190,6 @@ CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECU
 CREATE TRIGGER update_goals_updated_at BEFORE UPDATE ON goals FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_weekly_programs_updated_at BEFORE UPDATE ON weekly_programs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_program_tasks_updated_at BEFORE UPDATE ON program_tasks FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_questions_updated_at BEFORE UPDATE ON questions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_question_contents_updated_at BEFORE UPDATE ON question_contents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 CREATE TRIGGER update_user_topic_progress_updated_at BEFORE UPDATE ON user_topic_progress FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
