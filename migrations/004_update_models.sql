@@ -16,8 +16,8 @@ ALTER TABLE questions ADD COLUMN has_multiple_correct BOOLEAN DEFAULT false;
 
 -- 4. Create question_answers table for A,B,C,D options
 CREATE TABLE question_answers (
-    id SERIAL PRIMARY KEY,
-    question_id INTEGER NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    question_id UUID NOT NULL REFERENCES questions(id) ON DELETE CASCADE,
     option_letter VARCHAR(1) NOT NULL CHECK (option_letter IN ('A', 'B', 'C', 'D', 'E')),
     answer_text TEXT,
     answer_image_url TEXT,
