@@ -19,10 +19,16 @@ router.get('/users/:id', adminController.getUserById);
 // İçerik yönetimi
 router.get('/exams', adminController.getAllExams);
 router.post('/exams', adminController.createExam);
+router.put('/exams/:id', adminController.updateExam);
+router.delete('/exams/:id', adminController.deleteExam);
 router.get('/classes', adminController.getAllClasses);
 router.post('/classes', adminController.createClass);
+router.put('/classes/:id', adminController.updateClass);
+router.delete('/classes/:id', adminController.deleteClass);
 router.get('/subjects', adminController.getAllSubjects);
 router.post('/subjects', adminController.createSubject);
+router.put('/subjects/:id', adminController.updateSubject);
+router.delete('/subjects/:id', adminController.deleteSubject);
 router.get('/topics', adminController.getAllTopics);
 router.post('/topics', adminController.createTopic);
 router.put('/topics/:id', adminController.updateTopic);

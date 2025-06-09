@@ -551,6 +551,135 @@ const getAllTopics = async (req, res) => {
   }
 };
 
+// Sınav güncelleme
+const updateExam = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, exam_date, target_class_levels, prep_class_levels, description, is_active } = req.body;
+
+    const result = await query(`
+      UPDATE exams 
+      SET name = $1, exam_date = $2, target_class_levels = $3, prep_class_levels = $4, 
+          description = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7 
+      RETURNING *
+    `, [name, exam_date, target_class_levels, prep_class_levels, description, is_active !== false, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Sınav bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse(result.rows[0], 'Sınav başarıyla güncellendi'));
+  } catch (error) {
+    console.error('Sınav güncelleme hatası:', error);
+    res.status(500).json(errorResponse('Sınav güncellenemedi'));
+  }
+};
+
+// Sınav silme
+const deleteExam = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query('DELETE FROM exams WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Sınav bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse({ id }, 'Sınav başarıyla silindi'));
+  } catch (error) {
+    console.error('Sınav silme hatası:', error);
+    res.status(500).json(errorResponse('Sınav silinemedi'));
+  }
+};
+
+// Sınıf güncelleme
+const updateClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, min_class_level, max_class_level, exam_id, is_active } = req.body;
+
+    const result = await query(`
+      UPDATE classes 
+      SET name = $1, min_class_level = $2, max_class_level = $3, exam_id = $4, 
+          is_active = $5, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $6 
+      RETURNING *
+    `, [name, min_class_level, max_class_level, exam_id || null, is_active !== false, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Sınıf bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse(result.rows[0], 'Sınıf başarıyla güncellendi'));
+  } catch (error) {
+    console.error('Sınıf güncelleme hatası:', error);
+    res.status(500).json(errorResponse('Sınıf güncellenemedi'));
+  }
+};
+
+// Sınıf silme
+const deleteClass = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query('DELETE FROM classes WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Sınıf bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse({ id }, 'Sınıf başarıyla silindi'));
+  } catch (error) {
+    console.error('Sınıf silme hatası:', error);
+    res.status(500).json(errorResponse('Sınıf silinemedi'));
+  }
+};
+
+// Ders güncelleme
+const updateSubject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, description, min_class_level, max_class_level, order_index, is_active } = req.body;
+
+    const result = await query(`
+      UPDATE subjects 
+      SET name = $1, description = $2, min_class_level = $3, max_class_level = $4, 
+          order_index = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7 
+      RETURNING *
+    `, [name, description || '', min_class_level, max_class_level, order_index || 0, is_active !== false, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Ders bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse(result.rows[0], 'Ders başarıyla güncellendi'));
+  } catch (error) {
+    console.error('Ders güncelleme hatası:', error);
+    res.status(500).json(errorResponse('Ders güncellenemedi'));
+  }
+};
+
+// Ders silme
+const deleteSubject = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query('DELETE FROM subjects WHERE id = $1 RETURNING id', [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Ders bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse({ id }, 'Ders başarıyla silindi'));
+  } catch (error) {
+    console.error('Ders silme hatası:', error);
+    res.status(500).json(errorResponse('Ders silinemedi'));
+  }
+};
+
 
 module.exports = {
   login,
@@ -568,6 +697,12 @@ module.exports = {
   createTopic,
   updateTopic,
   deleteTopic,
+  updateExam,
+  deleteExam,
+  updateClass,
+  deleteClass,
+  updateSubject,
+  deleteSubject,
   createQuestion,
   updateQuestion,
   deleteQuestion
