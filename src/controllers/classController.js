@@ -8,18 +8,18 @@ const getAllClasses = async (req, res) => {
       SELECT 
         c.id, 
         c.name, 
-        c.level,
+        c.min_class_level,
+        c.max_class_level,
         c.is_active,
         e.name as exam_name,
         e.exam_date
       FROM classes c
       LEFT JOIN exams e ON c.exam_id = e.id
       WHERE c.is_active = true
-      ORDER BY c.level ASC
+      ORDER BY c.min_class_level ASC
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Sınıflar başarıyla getirildi'));
-
+    res.status(200).json(successResponse(result.rows || [], 'Sınıflar getirildi'));
   } catch (error) {
     console.error('Sınıfları getirme hatası:', error);
     res.status(500).json(errorResponse('Sınıflar getirilemedi'));

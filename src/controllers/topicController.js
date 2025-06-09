@@ -12,15 +12,17 @@ const getAllTopics = async (req, res) => {
         t.parent_id,
         s.name as subject_name,
         c.name as class_name,
-        c.level as class_level
+        c.min_class_level as class_level,
+        pt.name as parent_name
       FROM topics t
       INNER JOIN subjects s ON t.subject_id = s.id
       INNER JOIN classes c ON t.class_id = c.id
+      LEFT JOIN topics pt ON t.parent_id = pt.id
       WHERE t.is_active = true
-      ORDER BY s.order_index, c.level, t.order_index
+      ORDER BY s.order_index, c.min_class_level, t.order_index
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Tüm konular getirildi'));
+    res.status(200).json(successResponse(result.rows || [], 'Konular getirildi'));
   } catch (error) {
     console.error('Konuları getirme hatası:', error);
     res.status(500).json(errorResponse('Konular getirilemedi'));

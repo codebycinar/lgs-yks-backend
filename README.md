@@ -82,7 +82,7 @@ npm start
 PORT=3000
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=lgs_db
+DB_NAME=lgs_yks_db
 DB_USER=postgres
 DB_PASSWORD=postgres
 JWT_SECRET=your_jwt_secret

@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # PostgreSQL veritabanı servisi
@@ -6,7 +5,7 @@ services:
     image: postgres:15-alpine
     container_name: lgs_postgres
     environment:
-      POSTGRES_DB: lgs_db
+      POSTGRES_DB: lgs_yks_db
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
@@ -18,7 +17,7 @@ services:
       - lgs_network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d lgs_db"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d lgs_yks_db"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -33,7 +32,7 @@ services:
       - NODE_ENV=development
       - DB_HOST=postgres
       - DB_PORT=5432
-      - DB_NAME=lgs_db
+      - DB_NAME=lgs_yks_db
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - JWT_SECRET=development_secret_key_change_in_production
@@ -51,29 +50,7 @@ services:
     networks:
       - lgs_network
     restart: unless-stopped
-    command: npm start
-
-  # Admin Panel React servisi
-  admin:
-    build:
-      context: ../
-      dockerfile: lgs-yks-backend/Dockerfile.admin
-    container_name: lgs_admin
-    environment:
-      - REACT_APP_API_URL=http://localhost:3000/api
-      - PORT=3001
-    ports:
-      - "3001:3001"
-    volumes:
-      - ../lgs-yks-admin:/app
-      - /app/node_modules
-    depends_on:
-      - backend
-    networks:
-      - lgs_network
-    restart: unless-stopped
-    stdin_open: true
-    tty: true
+    command: sh -c "npm run migrate && npm run seed && npm start"
 
   # Redis cache servisi (ileride session ve cache için)
   redis:

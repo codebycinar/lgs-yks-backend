@@ -55,7 +55,7 @@ const getDashboardStats = async (req, res) => {
     // Aktif haftalık programlar
     const programsResult = await query(`
       SELECT COUNT(*) as total 
-      FROM programs 
+      FROM weekly_programs 
       WHERE is_active = true
     `);
 
@@ -224,10 +224,10 @@ const createExam = async (req, res) => {
     }
 
     const result = await query(`
-      INSERT INTO exams (name, exam_date, target_class_level, preparation_class_level, description)
+      INSERT INTO exams (name, exam_date, target_class_levels, prep_class_levels, description)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, examDate, targetClassLevels[0], prepClassLevels[0], description]);
+    `, [name, examDate, targetClassLevels, prepClassLevels, description]);
 
     res.status(201).json(successResponse(result.rows[0], 'Sınav başarıyla oluşturuldu'));
 
@@ -393,7 +393,7 @@ const getAllExams = async (req, res) => {
       ORDER BY created_at DESC
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Sınavlar getirildi'));
+    res.status(200).json(successResponse(result.rows || [], 'Sınavlar getirildi'));
   } catch (error) {
     console.error('Sınavları getirme hatası:', error);
     res.status(500).json(errorResponse('Sınavlar getirilemedi'));
@@ -416,7 +416,7 @@ const getAllClasses = async (req, res) => {
       ORDER BY c.created_at DESC
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Sınıflar getirildi'));
+    res.status(200).json(successResponse(result.rows || [], 'Sınıflar getirildi'));
   } catch (error) {
     console.error('Sınıfları getirme hatası:', error);
     res.status(500).json(errorResponse('Sınıflar getirilemedi'));
@@ -436,7 +436,7 @@ const getAllSubjects = async (req, res) => {
       ORDER BY order_index ASC, created_at DESC
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Dersler getirildi'));
+    res.status(200).json(successResponse(result.rows || [], 'Dersler getirildi'));
   } catch (error) {
     console.error('Dersleri getirme hatası:', error);
     res.status(500).json(errorResponse('Dersler getirilemedi'));
@@ -466,7 +466,7 @@ const getAllTopics = async (req, res) => {
       ORDER BY s.order_index, c.level, t.order_index
     `);
 
-    res.status(200).json(successResponse(result.rows, 'Konular getirildi'));
+    res.status(200).json(successResponse(result.rows || [], 'Konular getirildi'));
   } catch (error) {
     console.error('Konuları getirme hatası:', error);
     res.status(500).json(errorResponse('Konular getirilemedi'));

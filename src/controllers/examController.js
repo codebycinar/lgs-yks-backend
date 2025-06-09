@@ -9,30 +9,16 @@ const getAllActiveExams = async (req, res) => {
         id,
         name,
         exam_date,
-        target_class_level,
-        preparation_class_level,
+        target_class_levels,
+        prep_class_levels,
         description,
         is_active
       FROM exams 
-      WHERE is_active = true 
+      WHERE is_active = true
       ORDER BY exam_date ASC
     `);
 
-    // Sınava kalan süreyi hesapla
-    const examsWithCountdown = result.rows.map(exam => {
-      const examDate = new Date(exam.exam_date);
-      const today = new Date();
-      const daysRemaining = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
-      
-      return {
-        ...exam,
-        days_remaining: daysRemaining > 0 ? daysRemaining : 0,
-        is_exam_passed: daysRemaining <= 0
-      };
-    });
-
-    res.status(200).json(successResponse(examsWithCountdown, 'Aktif sınavlar getirildi'));
-
+    res.status(200).json(successResponse(result.rows || [], 'Sınavlar getirildi'));
   } catch (error) {
     console.error('Sınavları getirme hatası:', error);
     res.status(500).json(errorResponse('Sınavlar getirilemedi'));

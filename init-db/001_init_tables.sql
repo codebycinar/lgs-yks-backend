@@ -12,11 +12,11 @@ CREATE TYPE topic_progress_status AS ENUM ('not_started', 'in_progress', 'learne
 CREATE TABLE exams (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
-    exam_date DATE NOT NULL,
-    target_class_level INTEGER NOT NULL,
-    preparation_class_level INTEGER NOT NULL,
-    is_active BOOLEAN DEFAULT true,
+    exam_date DATE,
+    target_class_levels INTEGER[] NOT NULL,
+    prep_class_levels INTEGER[] NOT NULL,
     description TEXT,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -25,7 +25,8 @@ CREATE TABLE exams (
 CREATE TABLE classes (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(50) NOT NULL,
-    level INTEGER NOT NULL,
+    min_class_level INTEGER NOT NULL,
+    max_class_level INTEGER NOT NULL,
     exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -36,6 +37,7 @@ CREATE TABLE classes (
 CREATE TABLE subjects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(100) NOT NULL,
+    description TEXT,
     order_index INTEGER NOT NULL DEFAULT 0,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -46,6 +48,7 @@ CREATE TABLE subjects (
 CREATE TABLE topics (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name VARCHAR(200) NOT NULL,
+    description TEXT,
     subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
     parent_id UUID REFERENCES topics(id) ON DELETE CASCADE,
@@ -63,6 +66,9 @@ CREATE TABLE users (
     last_name VARCHAR(50) NOT NULL,
     class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
     gender gender_enum NOT NULL,
+    is_verified BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,
+    last_login TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -90,6 +96,7 @@ CREATE TABLE user_topic_progress (
 CREATE TABLE goals (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
     target_date DATE,
     is_completed BOOLEAN DEFAULT false,
@@ -105,6 +112,8 @@ CREATE TABLE weekly_programs (
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     title VARCHAR(200) NOT NULL,
+    description TEXT,
+    is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -113,6 +122,7 @@ CREATE TABLE weekly_programs (
 CREATE TABLE program_tasks (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     weekly_program_id UUID NOT NULL REFERENCES weekly_programs(id) ON DELETE CASCADE,
+    title VARCHAR(200) NOT NULL,
     description TEXT NOT NULL,
     task_date DATE NOT NULL,
     is_completed BOOLEAN DEFAULT false,
