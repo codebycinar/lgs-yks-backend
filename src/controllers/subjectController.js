@@ -4,7 +4,7 @@ const { successResponse, errorResponse } = require('../utils/helpers');
 const getAllSubjects = async (req, res) => {
   try {
     const result = await query(`
-      SELECT id, name, order_index, is_active
+      SELECT id, name, description, min_class_level, max_class_level, order_index, is_active
       FROM subjects 
       WHERE is_active = true
       ORDER BY order_index ASC

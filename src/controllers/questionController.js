@@ -28,7 +28,6 @@ const getQuestionsByTopic = async (req, res) => {
         q.solution_text,
         q.solution_image_url,
         q.solution_pdf_url,
-        q.correct_answers,
         q.explanation,
         q.keywords,
         q.estimated_time,
@@ -96,7 +95,18 @@ const getQuestionById = async (req, res) => {
       return res.status(404).json(errorResponse('Soru bulunamadı', 404));
     }
 
-    res.status(200).json(successResponse(result.rows[0], 'Soru detayı getirildi'));
+    // Sorunun cevaplarını getir
+    const answersResult = await query(`
+      SELECT id, answer_text, answer_image_url, is_correct, order_index
+      FROM question_answers
+      WHERE question_id = $1
+      ORDER BY order_index ASC
+    `, [id]);
+
+    const question = result.rows[0];
+    question.answers = answersResult.rows;
+
+    res.status(200).json(successResponse(question, 'Soru detayı getirildi'));
 
   } catch (error) {
     console.error('Soru detayı getirme hatası:', error);
@@ -116,14 +126,14 @@ const createQuestion = async (req, res) => {
       solutionText,
       solutionImageUrl, 
       solutionPdfUrl,
-      correctAnswers, 
       explanation, 
       keywords, 
-      estimatedTime 
+      estimatedTime,
+      answers
     } = req.body;
 
-    if (!topicId || !difficultyLevel || !correctAnswers || correctAnswers.length === 0) {
-      return res.status(400).json(errorResponse('Gerekli alanlar eksik: topicId, difficultyLevel, correctAnswers', 400));
+    if (!topicId || !difficultyLevel) {
+      return res.status(400).json(errorResponse('Gerekli alanlar eksik: topicId, difficultyLevel', 400));
     }
 
     // En az bir içerik türü olmalı (metin, görsel, ya da PDF)
@@ -141,12 +151,11 @@ const createQuestion = async (req, res) => {
         solution_text,
         solution_image_url,
         solution_pdf_url,
-        correct_answers,
         explanation,
         keywords,
         estimated_time
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `, [
       topicId, 
@@ -157,11 +166,34 @@ const createQuestion = async (req, res) => {
       solutionText || null,
       solutionImageUrl || null, 
       solutionPdfUrl || null,
-      JSON.stringify(correctAnswers), 
       explanation || null, 
       JSON.stringify(keywords || []), 
       estimatedTime || null
     ]);
+
+    const questionId = result.rows[0].id;
+
+    // Cevapları ekle
+    if (answers && answers.length > 0) {
+      for (const answer of answers) {
+        await query(`
+          INSERT INTO question_answers (
+            question_id,
+            answer_text,
+            answer_image_url,
+            is_correct,
+            order_index
+          )
+          VALUES ($1, $2, $3, $4, $5)
+        `, [
+          questionId,
+          answer.answerText || null,
+          answer.answerImageUrl || null,
+          answer.isCorrect || false,
+          answer.orderIndex || 0
+        ]);
+      }
+    }
 
     res.status(201).json(successResponse(result.rows[0], 'Soru başarıyla oluşturuldu'));
 
@@ -184,14 +216,14 @@ const updateQuestion = async (req, res) => {
       solutionText,
       solutionImageUrl, 
       solutionPdfUrl,
-      correctAnswers, 
       explanation, 
       keywords, 
-      estimatedTime 
+      estimatedTime,
+      answers
     } = req.body;
 
-    if (!topicId || !difficultyLevel || !correctAnswers || correctAnswers.length === 0) {
-      return res.status(400).json(errorResponse('Gerekli alanlar eksik: topicId, difficultyLevel, correctAnswers', 400));
+    if (!topicId || !difficultyLevel) {
+      return res.status(400).json(errorResponse('Gerekli alanlar eksik: topicId, difficultyLevel', 400));
     }
 
     // En az bir içerik türü olmalı (metin, görsel, ya da PDF)
@@ -209,12 +241,11 @@ const updateQuestion = async (req, res) => {
         solution_text = $6,
         solution_image_url = $7,
         solution_pdf_url = $8,
-        correct_answers = $9,
-        explanation = $10,
-        keywords = $11,
-        estimated_time = $12,
+        explanation = $9,
+        keywords = $10,
+        estimated_time = $11,
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $13
+      WHERE id = $12
       RETURNING *
     `, [
       topicId, 
@@ -225,12 +256,35 @@ const updateQuestion = async (req, res) => {
       solutionText || null,
       solutionImageUrl || null, 
       solutionPdfUrl || null,
-      JSON.stringify(correctAnswers), 
       explanation || null, 
       JSON.stringify(keywords || []), 
       estimatedTime || null,
       id
     ]);
+
+    // Mevcut cevapları sil ve yenilerini ekle
+    await query('DELETE FROM question_answers WHERE question_id = $1', [id]);
+    
+    if (answers && answers.length > 0) {
+      for (const answer of answers) {
+        await query(`
+          INSERT INTO question_answers (
+            question_id,
+            answer_text,
+            answer_image_url,
+            is_correct,
+            order_index
+          )
+          VALUES ($1, $2, $3, $4, $5)
+        `, [
+          id,
+          answer.answerText || null,
+          answer.answerImageUrl || null,
+          answer.isCorrect || false,
+          answer.orderIndex || 0
+        ]);
+      }
+    }
 
     if (result.rows.length === 0) {
       return res.status(404).json(errorResponse('Soru bulunamadı', 404));
