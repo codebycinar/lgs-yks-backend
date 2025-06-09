@@ -25,6 +25,8 @@ router.get('/subjects', adminController.getAllSubjects);
 router.post('/subjects', adminController.createSubject);
 router.get('/topics', adminController.getAllTopics);
 router.post('/topics', adminController.createTopic);
+router.put('/topics/:id', adminController.updateTopic);
+router.delete('/topics/:id', adminController.deleteTopic);
 
 // Soru yönetimi - Admin paneli için
 router.get('/questions', adminController.getAllQuestions);

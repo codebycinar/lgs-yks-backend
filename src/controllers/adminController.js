@@ -240,17 +240,17 @@ const createExam = async (req, res) => {
 // Sınıf oluşturma
 const createClass = async (req, res) => {
   try {
-    const { name, minClassLevel, examId } = req.body;
+    const { name, minClassLevel, maxClassLevel, examId } = req.body;
 
     if (!name || !minClassLevel) {
       return res.status(400).json(errorResponse('Gerekli alanlar eksik', 400));
     }
 
     const result = await query(`
-      INSERT INTO classes (name, level, exam_id)
-      VALUES ($1, $2, $3)
+      INSERT INTO classes (name, min_class_level, max_class_level, exam_id)
+      VALUES ($1, $2, $3, $4)
       RETURNING *
-    `, [name, minClassLevel, examId]);
+    `, [name, minClassLevel, maxClassLevel || minClassLevel, examId || null]);
 
     res.status(201).json(successResponse(result.rows[0], 'Sınıf başarıyla oluşturuldu'));
 
@@ -263,17 +263,17 @@ const createClass = async (req, res) => {
 // Ders oluşturma
 const createSubject = async (req, res) => {
   try {
-    const { name, orderIndex } = req.body;
+    const { name, description, min_class_level, max_class_level, orderIndex } = req.body;
 
     if (!name) {
       return res.status(400).json(errorResponse('Ders adı gerekli', 400));
     }
 
     const result = await query(`
-      INSERT INTO subjects (name, order_index)
-      VALUES ($1, $2)
+      INSERT INTO subjects (name, description, min_class_level, max_class_level, order_index)
+      VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, orderIndex || 0]);
+    `, [name, description || '', min_class_level || 6, max_class_level || 12, orderIndex || 0]);
 
     res.status(201).json(successResponse(result.rows[0], 'Ders başarıyla oluşturuldu'));
 
@@ -286,9 +286,9 @@ const createSubject = async (req, res) => {
 // Konu oluşturma
 const createTopic = async (req, res) => {
   try {
-    const { name, subjectId, classId, parentId, orderIndex } = req.body;
+    const { name, subject_id, class_id, parent_id, orderIndex } = req.body;
 
-    if (!name || !subjectId || !classId) {
+    if (!name || !subject_id || !class_id) {
       return res.status(400).json(errorResponse('Konu adı, ders ve sınıf gerekli', 400));
     }
 
@@ -296,13 +296,71 @@ const createTopic = async (req, res) => {
       INSERT INTO topics (name, subject_id, class_id, parent_id, order_index)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING *
-    `, [name, subjectId, classId, parentId, orderIndex || 0]);
+    `, [name, subject_id, class_id, parent_id || null, orderIndex || 0]);
 
     res.status(201).json(successResponse(result.rows[0], 'Konu başarıyla oluşturuldu'));
 
   } catch (error) {
     console.error('Konu oluşturma hatası:', error);
     res.status(500).json(errorResponse('Konu oluşturulamadı'));
+  }
+};
+
+// Konu güncelleme
+const updateTopic = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, subject_id, class_id, parent_id, orderIndex, is_active } = req.body;
+
+    if (!name || !subject_id || !class_id) {
+      return res.status(400).json(errorResponse('Konu adı, ders ve sınıf gerekli', 400));
+    }
+
+    const result = await query(`
+      UPDATE topics SET 
+        name = $1, 
+        subject_id = $2, 
+        class_id = $3, 
+        parent_id = $4, 
+        order_index = $5,
+        is_active = $6,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $7
+      RETURNING *
+    `, [name, subject_id, class_id, parent_id || null, orderIndex || 0, is_active !== false, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Konu bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse(result.rows[0], 'Konu başarıyla güncellendi'));
+
+  } catch (error) {
+    console.error('Konu güncelleme hatası:', error);
+    res.status(500).json(errorResponse('Konu güncellenemedi'));
+  }
+};
+
+// Konu silme
+const deleteTopic = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query(`
+      DELETE FROM topics 
+      WHERE id = $1 
+      RETURNING id
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json(errorResponse('Konu bulunamadı', 404));
+    }
+
+    res.status(200).json(successResponse(null, 'Konu başarıyla silindi'));
+
+  } catch (error) {
+    console.error('Konu silme hatası:', error);
+    res.status(500).json(errorResponse('Konu silinemedi'));
   }
 };
 
@@ -447,6 +505,9 @@ const getAllSubjects = async (req, res) => {
       SELECT 
         id,
         name,
+        description,
+        min_class_level,
+        max_class_level,
         order_index,
         is_active,
         created_at
@@ -474,9 +535,11 @@ const getAllTopics = async (req, res) => {
         t.is_active,
         t.created_at,
         s.name as subject_name,
+        c.name as class_name,
         pt.name as parent_name
       FROM topics t
       INNER JOIN subjects s ON t.subject_id = s.id
+      INNER JOIN classes c ON t.class_id = c.id
       LEFT JOIN topics pt ON t.parent_id = pt.id
       ORDER BY s.order_index, t.order_index
     `);
@@ -503,6 +566,8 @@ module.exports = {
   createClass,
   createSubject,
   createTopic,
+  updateTopic,
+  deleteTopic,
   createQuestion,
   updateQuestion,
   deleteQuestion
