@@ -329,21 +329,32 @@ const getAllQuestions = async (req, res) => {
         q.solution_text,
         q.solution_image_url,
         q.solution_pdf_url,
-        q.correct_answers,
+        q.has_multiple_correct,
         q.explanation,
-        q.keywords,
         q.estimated_time,
         q.difficulty_level,
         q.is_active,
         q.created_at,
         t.name as topic_name,
         s.name as subject_name,
-        c.name as class_name
+        c.name as class_name,
+        json_agg(
+          json_build_object(
+            'id', qa.id,
+            'option_letter', qa.option_letter,
+            'answer_text', qa.answer_text,
+            'answer_image_url', qa.answer_image_url,
+            'is_correct', qa.is_correct,
+            'order_index', qa.order_index
+          ) ORDER BY qa.order_index
+        ) as answers
       FROM questions q
       INNER JOIN topics t ON q.topic_id = t.id
       INNER JOIN subjects s ON t.subject_id = s.id
       INNER JOIN classes c ON t.class_id = c.id
+      LEFT JOIN question_answers qa ON q.id = qa.question_id
       ${whereClause}
+      GROUP BY q.id, t.name, s.name, c.name
       ORDER BY q.created_at DESC
       LIMIT $1 OFFSET $2
     `, params);
@@ -359,8 +370,14 @@ const getAllQuestions = async (req, res) => {
     const total = parseInt(countResult.rows[0].total);
     const totalPages = Math.ceil(total / parsedLimit);
 
+    // Process the results
+    const questions = result.rows.map(q => ({
+      ...q,
+      answers: q.answers[0] === null ? [] : q.answers // Handle case where there are no answers
+    }));
+
     res.status(200).json(successResponse({
-      questions: result.rows,
+      questions,
       pagination: {
         currentPage: parseInt(page),
         totalPages,
@@ -406,7 +423,8 @@ const getAllClasses = async (req, res) => {
       SELECT 
         c.id, 
         c.name, 
-        c.level,
+        c.min_class_level,
+        c.max_class_level,
         c.is_active,
         c.created_at,
         e.name as exam_name,
@@ -456,14 +474,11 @@ const getAllTopics = async (req, res) => {
         t.is_active,
         t.created_at,
         s.name as subject_name,
-        c.name as class_name,
-        c.level as class_level,
         pt.name as parent_name
       FROM topics t
       INNER JOIN subjects s ON t.subject_id = s.id
-      INNER JOIN classes c ON t.class_id = c.id
       LEFT JOIN topics pt ON t.parent_id = pt.id
-      ORDER BY s.order_index, c.level, t.order_index
+      ORDER BY s.order_index, t.order_index
     `);
 
     res.status(200).json(successResponse(result.rows || [], 'Konular getirildi'));

@@ -136,7 +136,7 @@ CREATE TABLE program_tasks (
 CREATE TABLE questions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     topic_id UUID NOT NULL REFERENCES topics(id) ON DELETE CASCADE,
-    difficulty_level VARCHAR(10) NOT NULL DEFAULT 'medium' CHECK (difficulty_level IN ('easy', 'medium', 'hard')),
+    difficulty_level INTEGER NOT NULL DEFAULT 3 CHECK (difficulty_level BETWEEN 1 AND 5),
     question_text TEXT,
     question_image_url TEXT,
     question_pdf_url TEXT,
