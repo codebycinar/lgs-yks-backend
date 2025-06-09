@@ -35,8 +35,8 @@ const getExamById = async (req, res) => {
         id,
         name,
         exam_date,
-        target_class_level,
-        preparation_class_level,
+        target_class_levels,
+        prep_class_levels,
         description,
         is_active,
         created_at
